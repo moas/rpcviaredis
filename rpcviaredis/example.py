@@ -1,8 +1,8 @@
 from urllib import request
 
-from redisrpc.models import Response
-from redisrpc.server import ServerRPC
-from redisrpc.transport import *
+from rpcviaredis.models import Response
+from rpcviaredis.server import ServerRPC
+from rpcviaredis.transport import *
 
 
 class DummyServer(ServerRPC):
