@@ -5,9 +5,9 @@ from threading import Event
 
 import redis
 
-from redisrpc import transport
-from redisrpc.models import Response
-from redisrpc import exceptions
+from rpcviaredis import transport
+from rpcviaredis.models import Response
+from rpcviaredis import exceptions
 
 
 class ServerRPC:
