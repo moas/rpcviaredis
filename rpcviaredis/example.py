@@ -1,6 +1,4 @@
-from rpcviaredis.models import Response
-from rpcviaredis.server import ServerRPC
-from rpcviaredis.transport import *
+from rpcviaredis import *
 
 
 class DummyServer(ServerRPC):
@@ -19,7 +17,7 @@ if __name__ == "__main__":
     import redis
 
     r = redis.StrictRedis(db=2)
-    s = DummyServer(r, 'test-rpc', transport_klass=JSONTransport)
+    s = DummyServer(r, 'test-rpc', transport_klass=JsonTransport)
     try:
         s.start()
     except KeyboardInterrupt:
