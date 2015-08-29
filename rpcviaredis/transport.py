@@ -2,24 +2,6 @@ import abc
 import json
 import pickle
 
-try:
-    import msgpack
-except ImportError as exc:
-    import warnings
-
-    class FakeMsgPack:
-        _fallback = JsonTransport()
-
-        def packb(self, data):
-            warnings.warn("{}: Msgpack not found. JSON transport is fallback".format(exc), category=ImportWarning)
-            return self._fallback.packed(data)
-
-        def unpackb(self, data):
-            warnings.warn("{}: Msgpack not found. JSON transport is fallback".format(exc), category=ImportWarning)
-            return self._fallback.unpacked(data)
-    msgpack = FakeMsgPack()
-
-
 class PackedException(ValueError):
     pass
 
@@ -40,10 +22,10 @@ class AbstractTransport(abc.ABC):
 
 class JsonTransport(AbstractTransport):
 
-    def packed(self, data) -> str:
+    def packed(self, data):
         return json.dumps(data)
 
-    def unpacked(self, data) -> dict:
+    def unpacked(self, data):
         data = data if isinstance(data, str) else data.decode()
         try:
             return json.loads(data)
@@ -64,6 +46,23 @@ class PickleTransport(AbstractTransport):
             return pickle.loads(data)
         except pickle.PickleError as exc:
             raise UnpackedException("Exception {}: impossible to unpacked data".format(exc.__class__.__name__))
+
+
+try:
+    import msgpack
+except ImportError as exc:
+    import warnings
+
+    class FakeMsgPack:
+        _fallback = JsonTransport()
+        warnings.warn("{}: Msgpack not found. JSON transport is fallback".format(exc), category=ImportWarning)
+
+        def packb(self, data):
+            return self._fallback.packed(data)
+
+        def unpackb(self, data):
+            return self._fallback.unpacked(data)
+    msgpack = FakeMsgPack()
 
 
 class MsgPackTransport(AbstractTransport):

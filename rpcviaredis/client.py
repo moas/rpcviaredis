@@ -1,13 +1,10 @@
 import uuid
 
 import redis
-import msgpack
 
 from .exceptions import *
 from . import transport
 from .models import Request, Response
-
-NULL_RESPONSE = msgpack.packb(Response())
 
 
 class Client:
@@ -31,6 +28,8 @@ class Client:
         self.__fname = None
         self.__response_channel = None
         self.__unauthorized_cb = ('stop', 'start')
+
+        self.__null_response = self.__transport.packed(Response())
 
     def __getattr__(self, name):
         if any([name.startswith('__'), name.endswith('__')]):
@@ -71,7 +70,7 @@ class Client:
         try:
             _chan, retval = self._redis.blpop(self.__response_channel, timeout=self._timeout)
             assert _chan.decode() == self.__response_channel
-            retval_unpacked = self._transport.unpacked(retval or NULL_RESPONSE)
+            retval_unpacked = self._transport.unpacked(retval or self.__null_response)
         except (redis.exceptions.TimeoutError,):
             raise ResponseTimeOutError("Response not receive after {}s waiting".format(self._timeout))
         except transport.UnpackedException:
