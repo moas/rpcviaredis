@@ -1,5 +1,3 @@
-from urllib import request
-
 from rpcviaredis.models import Response
 from rpcviaredis.server import ServerRPC
 from rpcviaredis.transport import *
