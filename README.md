@@ -1,6 +1,6 @@
 rpcviaredis
 ==========
-*Using redis server to build RPC environment - by **Oscar LASM*
+*Using redis server to build RPC environment - by Oscar LASM*
 
 ----------
 rpcviaredis intended to provide a simple tool for establishing a pattern RPC over an installation Redis.
