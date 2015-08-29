@@ -29,7 +29,7 @@ class Client:
         self.__response_channel = None
         self.__unauthorized_cb = ('stop', 'start')
 
-        self.__null_response = self.__transport.packed(Response())
+        self.__null_response = self._transport.packed(Response())
 
     def __getattr__(self, name):
         if any([name.startswith('__'), name.endswith('__')]):

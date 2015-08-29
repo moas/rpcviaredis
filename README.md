@@ -45,6 +45,6 @@ Client Implementation
     from rpcviaredis import Client
 
     r = redis.StrictRedis(db=2)
-    c = Client(r, 'test-rpc', transport_klass=JSONTransport)
-    c.sum(1,2)
-    print(c.response) # c.response = 3
+    c = Client(r, 'test-rpc', transport_klass=JsonTransport)
+    retval = c.sum(1,2)
+    print(retval.response) # print 3
