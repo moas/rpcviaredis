@@ -3,8 +3,17 @@ import uuid
 import redis
 
 from .exceptions import *
-from . import transport
+from .transport import (AbstractTransport, PackedException,
+                        UnpackedException, JsonTransport)
 from .models import Request, Response
+
+
+class SystemCallback:
+
+    listMethods = '__system_list_methods__'
+
+    def __getattr__(self, item):
+        return item
 
 
 class Client:
@@ -12,13 +21,13 @@ class Client:
             self,
             redis_connection,
             request_channel,
-            transport_klass=transport.JsonTransport,
+            transport_klass=JsonTransport,
             response_timeout=1):
 
         assert isinstance(redis_connection, redis.StrictRedis)
         assert isinstance(request_channel, str)
         assert isinstance(response_timeout, int)
-        assert issubclass(transport_klass, transport.AbstractTransport)
+        assert issubclass(transport_klass, AbstractTransport)
 
         self._redis = redis_connection
         self._request_channel = request_channel
@@ -37,6 +46,9 @@ class Client:
 
         if name in self.__unauthorized_cb:
             raise AttributeError("Callback {} is unauthorized".format(name))
+
+        if name == "system":
+            return SystemCallback()
 
         def wrapper(*args, **kwargs):
             self.__fname = name
@@ -62,7 +74,7 @@ class Client:
                           kwargs=_call_kwargs, response_channel=self.__response_channel)
         try:
             request_packed = self._transport.packed(request)
-        except transport.PackedException:
+        except PackedException:
             raise PackedRequestFail("Impossible to packed {!r} with {}".format(request,
                                                                                self._transport.__class__.__name__))
 
@@ -73,7 +85,7 @@ class Client:
             retval_unpacked = self._transport.unpacked(retval or self.__null_response)
         except (redis.exceptions.TimeoutError,):
             raise ResponseTimeOutError("Response not receive after {}s waiting".format(self._timeout))
-        except transport.UnpackedException:
+        except UnpackedException:
             raise UnpackedResponseFail("Impossible to unpack "
                                        "response {!r} with {}".format(retval, self._transport.__class__.__name__))
         else:

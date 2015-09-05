@@ -1,13 +1,15 @@
 import logging
 import time
+import inspect
 
 from threading import Event
 
 import redis
 
-from rpcviaredis import transport
-from rpcviaredis.models import Response
-from rpcviaredis import exceptions
+from .transport import (AbstractTransport, PackedException,
+                        UnpackedException, JsonTransport)
+from .models import Response
+from .exceptions import CallbackNotFound
 
 
 class ServerRPC:
@@ -16,19 +18,22 @@ class ServerRPC:
             self,
             redis_connection,
             request_channel,
-            transport_klass=transport.JsonTransport,
+            transport_klass=JsonTransport,
             event=None):
 
         assert isinstance(redis_connection, redis.StrictRedis)
         assert isinstance(request_channel, str)
         assert isinstance(event, type(None)) or all((hasattr(event, 'set'), hasattr(event, 'is_set')))
-        assert issubclass(transport_klass, transport.AbstractTransport)
+        assert issubclass(transport_klass, AbstractTransport)
 
         self._redis = redis_connection
         self._request_channel = request_channel
 
         self.__transport = transport_klass()
         self.__event = event or Event()
+
+        self.__authorized_cb = set('system.listMethods')
+        self.__unauthorized_cb = ('stop', 'start')
 
     def stop(self):
         self.__event.set()
@@ -40,6 +45,13 @@ class ServerRPC:
         rep = Response(response='pong', return_code=200)
         return rep
 
+    def __system_list_methods__(self):
+        for name, _ in inspect.getmembers(self.__class__, predicate=inspect.ismethod):
+            if name not in self.__unauthorized_cb and any([name.startswith('__'), name.endswith('__')]):
+                self.__authorized_cb.add(name)
+        resp = Response(response=self.__authorized_cb, return_code=200)
+        return resp
+
     def __run(self):
         self.__init_channel()
         while self.__event.is_set() is False:
@@ -49,8 +61,8 @@ class ServerRPC:
             request = self._redis.lpop(self._request_channel)
             try:
                 request_unpacked = self.__transport.unpacked(request)
-            except transport.UnpackedException:
-                _rep = Response(exception=transport.UnpackedException.__name__, return_code=402,
+            except UnpackedException:
+                _rep = Response(exception=UnpackedException.__name__, return_code=402,
                                 reason="Unpack request failed")
                 message_packed = self.__prepare_response(_rep)
                 logging.debug('RPC Request on %s: Impossible to route request - Unpack failed' % self._request_channel)
@@ -97,7 +109,7 @@ class ServerRPC:
         _cb = getattr(self, cb, None)
 
         if _cb is None:
-            _response = Response(return_code=404, exception=exceptions.CallbackNotFound.__name__,
+            _response = Response(return_code=404, exception=CallbackNotFound.__name__,
                                  reason="{} not found".format(cb))
             return self.__prepare_response(_response)
 
@@ -116,7 +128,7 @@ class ServerRPC:
 
         try:
             return self.__transport.packed(_rep)
-        except transport.PackedException:
+        except PackedException:
             sentinel = Response(return_code=502, reason="Prepare response failed",
-                                exception=transport.PackedException.__name__)
+                                exception=PackedException.__name__)
             return self.__transport.packed(sentinel)
