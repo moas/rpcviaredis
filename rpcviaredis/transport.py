@@ -2,8 +2,10 @@ import abc
 import json
 import pickle
 
+
 class PackedException(ValueError):
     pass
+
 
 class UnpackedException(ValueError):
     pass
