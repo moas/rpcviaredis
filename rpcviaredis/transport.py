@@ -53,7 +53,6 @@ class PickleTransport(AbstractTransport):
 try:
     import msgpack
 except ImportError as exc:
-
     class MsgPackTransport(AbstractTransport):
 
         def packed(self, data):
@@ -61,9 +60,7 @@ except ImportError as exc:
 
         def unpacked(self, data):
             raise ImportError("msgpack package not found")
-
 else:
-
     class MsgPackTransport(AbstractTransport):
 
         def packed(self, data):
